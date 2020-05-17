@@ -3,15 +3,10 @@ Shared functions among the tests like setting up test environment
 """
 from pathlib import Path
 
-import pandas
-import dask.dataframe
-
 from dataframe_sql import register_temp_table, remove_temp_table
+from dataframe_sql.framework_utils import read_csv_type
 
 DATA_PATH = Path(__file__).parent.parent / "data"
-
-dataframe_type = {"pandas": pandas.DataFrame, "dask": dask.dataframe.DataFrame}
-read_csv_type = {"pandas": pandas.read_csv, "dask": dask.dataframe.read_csv}
 
 DATA_FILES = {
     "FOREST_FIRES": "forestfires.csv",

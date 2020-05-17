@@ -1346,6 +1346,7 @@ def test_timestamps():
 
 # TODO Add in more having and boolean tests
 
+
 @assert_state_not_change
 def test_case_statement_with_same_conditions():
     """

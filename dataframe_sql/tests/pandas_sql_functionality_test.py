@@ -1357,6 +1357,7 @@ def test_timestamps():
 
 # TODO Add in more having and boolean tests
 
+
 @assert_state_not_change
 def test_case_statement_with_same_conditions():
     """
@@ -1512,7 +1513,7 @@ def test_boolean_order_of_operations_with_parens():
 
 
 if __name__ == "__main__":
-    register_env_tables()
+    register_env_tables("pandas")
 
     test_sql_data_types()
 

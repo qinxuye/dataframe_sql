@@ -27,8 +27,13 @@ from dataframe_sql.sql_objects import (
     Value,
     ValueWithPlan,
 )
-
-# pd.set_option('display.max_rows', 1000)
+from dataframe_sql.framework_utils import (
+    dataframe_type,
+    read_csv_type,
+    PANDAS,
+    DASK,
+    OPTIONS,
+)
 
 ORDER_TYPES = ["asc", "desc", "ascending", "descending"]
 ORDER_TYPES_MAPPING = {
@@ -114,6 +119,7 @@ class TransformerBaseClass(Transformer):
         column_to_dataframe_name=None,
         _temp_dataframes_dict=None,
         get_execution_plan=False,
+        backend=OPTIONS["backend"],
     ):
         Transformer.__init__(self, visit_tokens=False)
         self.dataframe_name_map = dataframe_name_map
@@ -123,8 +129,9 @@ class TransformerBaseClass(Transformer):
         self._temp_dataframes_dict = _temp_dataframes_dict
         self._get_execution_plan = get_execution_plan
         self._execution_plan = ""
+        self._backend = backend
 
-    def get_frame(self, frame_name) -> DataFrame:
+    def get_frame(self, frame_name) -> Union[DataFrame, Join]:
         """
         Returns the dataframe with the name given
         :param frame_name:
@@ -594,6 +601,7 @@ class InternalTransformer(TransformerBaseClass):
         :param when_expressions:
         :return:
         """
+        print(when_expressions)
         case_execution_plan = "NONE_SERIES"
         if isinstance(when_expressions[0], tuple):
             dataframe_size = when_expressions[0][0].value.size
@@ -1096,10 +1104,11 @@ class SQLTransformer(TransformerBaseClass):
     def get_lower_columns(self, table_name):
         """
         Returns a list of lower case column names for a given table name
-        :param column_list:
+        :param table_name:
         :return:
         """
-        return [column.lower() for column in list(self.get_frame(table_name).columns)]
+        return [column.lower() for column in list(self.get_frame(
+            table_name).columns)]
 
     def determine_column_side(self, column, left_table, right_table):
         """
@@ -1173,6 +1182,7 @@ class SQLTransformer(TransformerBaseClass):
         column1 = str(column_comparison[0].children)
         column2 = str(column_comparison[1].children)
 
+        print(table1, table2)
         column1_side, column1 = self.determine_column_side(column1, table1, table2)
         column2_side, column2 = self.determine_column_side(column2, table1, table2)
         if column1_side == column2_side:

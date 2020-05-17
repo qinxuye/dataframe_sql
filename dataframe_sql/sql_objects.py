@@ -5,8 +5,8 @@ from datetime import date, datetime
 from typing import Any, List, Optional, Tuple
 
 from lark import Transformer
-from pandas import Series
 
+from dataframe_sql.framework_utils import OPTIONS, series_type, SeriesType
 
 # pylint: disable=too-few-public-methods
 class AmbiguousColumn:
@@ -29,14 +29,15 @@ class Value:
     Parent class for expression_count and columns
     """
 
-    def __init__(self, value, alias="", typename=""):
+    def __init__(self, value, alias="", typename="", backend=OPTIONS["backend"]):
         self.value = value
         self.alias = alias
         self.typename = typename
         self.final_name = alias
+        self.series_type = series_type[backend]
 
     def __repr__(self):
-        if isinstance(self.value, Series):
+        if isinstance(self.value, self.series_type):
             print_value = "SeriesObject"
         else:
             print_value = self.value
@@ -285,7 +286,7 @@ class DerivedColumn(Value):
         if self.alias:
             self.final_name = self.alias
         else:
-            if isinstance(self.value, (Series, Column)):
+            if isinstance(self.value, (self.series_type, Column)):
                 self.final_name = f"_col{self.expression_count}"
                 self.alias = self.final_name
                 DerivedColumn.increment_expression_count()
@@ -395,7 +396,7 @@ class Column(Value):
         other = self.get_other_value(other)
         return self.value <= other
 
-    def set_value(self, new_value: Series):
+    def set_value(self, new_value: SeriesType):
         """
         Set the value of the column to value
         :param new_value:
@@ -475,3 +476,11 @@ class QueryInfo:
     @staticmethod
     def set_none_var(value, default):
         return default if not value else value
+
+    def preview_info(self):
+        print(self.aggregates)
+        # column_selections = ",".join([f"{column.name} as {self.aliases[column.name]}" for
+        #                               column in
+        #                               self.columns])
+        # print(f"Select {column_selections}")
+        # exit()

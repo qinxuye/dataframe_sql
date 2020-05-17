@@ -7,9 +7,9 @@ from types import FunctionType
 from typing import Dict, List, Tuple, Union
 
 from lark import Token, Transformer, Tree, v_args
-from pandas import DataFrame, Series, concat, merge
 
 from dataframe_sql.exceptions.sql_exception import DataFrameDoesNotExist
+from dataframe_sql.framework_utils import OPTIONS
 from dataframe_sql.sql_objects import (
     Aggregate,
     AmbiguousColumn,
@@ -27,13 +27,12 @@ from dataframe_sql.sql_objects import (
     Value,
     ValueWithPlan,
 )
-from dataframe_sql.framework_utils import (
-    dataframe_type,
-    read_csv_type,
-    PANDAS,
-    DASK,
-    OPTIONS,
-)
+
+if OPTIONS["backend"] == "pandas":
+    from pandas import DataFrame, Series, concat, merge
+if OPTIONS["backend"] == "dask":
+    from dask.dataframe import DataFrame, Series, concat, merge
+from dataframe_sql.framework_utils import SeriesType, DataFrameType
 
 ORDER_TYPES = ["asc", "desc", "ascending", "descending"]
 ORDER_TYPES_MAPPING = {
@@ -131,7 +130,7 @@ class TransformerBaseClass(Transformer):
         self._execution_plan = ""
         self._backend = backend
 
-    def get_frame(self, frame_name) -> Union[DataFrame, Join]:
+    def get_frame(self, frame_name) -> Union[DataFrameType, Join]:
         """
         Returns the dataframe with the name given
         :param frame_name:
@@ -1107,8 +1106,7 @@ class SQLTransformer(TransformerBaseClass):
         :param table_name:
         :return:
         """
-        return [column.lower() for column in list(self.get_frame(
-            table_name).columns)]
+        return [column.lower() for column in list(self.get_frame(table_name).columns)]
 
     def determine_column_side(self, column, left_table, right_table):
         """
@@ -1339,7 +1337,7 @@ class SQLTransformer(TransformerBaseClass):
         return query_info
 
     def cross_join(
-        self, df1: DataFrame, df2: DataFrame, current_plan: str, df2_name: str
+        self, df1: DataFrameType, df2: DataFrameType, current_plan: str, df2_name: str
     ):
         """
         Returns the crossjoin between two dataframes
@@ -1358,7 +1356,7 @@ class SQLTransformer(TransformerBaseClass):
 
     @staticmethod
     def handle_aggregation(
-        aggregates, group_columns, dataframe: DataFrame, execution_plan: str
+        aggregates, group_columns, dataframe: DataFrameType, execution_plan: str
     ):
         """
         Handles all aggregation operations when translating from dictionary info
@@ -1376,7 +1374,7 @@ class SQLTransformer(TransformerBaseClass):
                         f"For column {column} you must either group or "
                         f"provide and aggregation"
                     )
-            dataframe.drop_duplicates(keep="first", inplace=True)
+            dataframe = dataframe.drop_duplicates(keep="first")
             execution_plan += ".drop_duplicates(keep='first')"
         elif aggregates and not group_columns:
             dataframe = (
@@ -1403,7 +1401,7 @@ class SQLTransformer(TransformerBaseClass):
         self,
         columns: list,
         aliases: dict,
-        first_frame: DataFrame,
+        first_frame: DataFrameType,
         execution_plan: str,
         where_expr: Tree,
         internal_transformer: Transformer,
@@ -1429,7 +1427,7 @@ class SQLTransformer(TransformerBaseClass):
         column_names = [column.name for column in columns]
         if self.has_star(column_names):
             if where_value is not None:
-                new_frame: DataFrame = first_frame.loc[where_value, :].copy()
+                new_frame: DataFrameType = first_frame.loc[where_value, :].copy()
                 execution_plan += f".loc[{where_plan}, :]"
             else:
                 new_frame = first_frame.copy()
@@ -1554,6 +1552,8 @@ class SQLTransformer(TransformerBaseClass):
             execution_plan += f".astype({conversions})"
             new_frame = new_frame.astype(conversions)
 
+        print(new_frame)
+
         new_frame, execution_plan = self.handle_aggregation(
             query_info.aggregates, query_info.group_columns, new_frame, execution_plan,
         )
@@ -1585,12 +1585,13 @@ class SQLTransformer(TransformerBaseClass):
 
         return new_frame, execution_plan
 
-    def set_expr(self, query_info):
+    def set_expr(self, query_info: QueryInfo):
         """
         Return different sql_object with set relational operations performed
         :param query_info:
         :return:
         """
+        query_info.preview_info()
         frame, plan = self.to_dataframe(query_info)
         # TODO Maybe don't always reset index (maybe put into execution plan)
         return frame.reset_index(drop=True), plan

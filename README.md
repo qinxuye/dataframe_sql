@@ -127,3 +127,8 @@ backend are grouped together in this list
 - No rank over(order by ...)
 - No straight aggregation without groupby object
 - ** No pandas date object
+
+## Issues coming from dask
+
+- No named aggregation currently
+- No sort_values method currently

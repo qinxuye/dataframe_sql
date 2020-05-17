@@ -12,7 +12,7 @@ from dataframe_sql.tests.utils import register_env_tables, remove_env_tables
 
 @pytest.fixture(autouse=True, scope="module")
 def module_setup_teardown():
-    register_env_tables()
+    register_env_tables("pandas")
     yield
     remove_env_tables()
 
@@ -23,7 +23,6 @@ def test_select_star():
     :return:
     """
     frame, plan = query("select * from forest_fires", show_execution_plan=True)
-    print(plan)
     assert plan == "FOREST_FIRES"
 
 
@@ -462,8 +461,6 @@ def test_having_one_condition():
         "select min(temp) from forest_fires having min(temp) > 2",
         show_execution_plan=True,
     )
-
-    print(plan)
 
     assert (
         plan == "FOREST_FIRES.loc[:, ['temp']].assign(__=1).groupby(['__'])"
@@ -1057,7 +1054,6 @@ def test_date_cast():
         select wind, cast('2019-01-01' as datetime64) as my_date from forest_fires""",
             show_execution_plan=True,
         )
-        print(plan)
         assert (
             plan == "FOREST_FIRES.loc[:, ['wind']].assign(my_date="
             "datetime(2019, 1, 1, 0, 0, 0), )"
@@ -1076,7 +1072,6 @@ def test_timestamps():
         from forest_fires""",
             show_execution_plan=True,
         )
-        print(plan)
         assert (
             plan == "FOREST_FIRES.loc[:, ['wind']].assign("
             "now()=datetime(2019, 1, 1, 0, 0, 0), "

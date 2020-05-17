@@ -600,7 +600,6 @@ class InternalTransformer(TransformerBaseClass):
         :param when_expressions:
         :return:
         """
-        print(when_expressions)
         case_execution_plan = "NONE_SERIES"
         if isinstance(when_expressions[0], tuple):
             dataframe_size = when_expressions[0][0].value.size
@@ -1180,7 +1179,6 @@ class SQLTransformer(TransformerBaseClass):
         column1 = str(column_comparison[0].children)
         column2 = str(column_comparison[1].children)
 
-        print(table1, table2)
         column1_side, column1 = self.determine_column_side(column1, table1, table2)
         column2_side, column2 = self.determine_column_side(column2, table1, table2)
         if column1_side == column2_side:
@@ -1552,8 +1550,6 @@ class SQLTransformer(TransformerBaseClass):
             execution_plan += f".astype({conversions})"
             new_frame = new_frame.astype(conversions)
 
-        print(new_frame)
-
         new_frame, execution_plan = self.handle_aggregation(
             query_info.aggregates, query_info.group_columns, new_frame, execution_plan,
         )
@@ -1591,7 +1587,6 @@ class SQLTransformer(TransformerBaseClass):
         :param query_info:
         :return:
         """
-        query_info.preview_info()
         frame, plan = self.to_dataframe(query_info)
         # TODO Maybe don't always reset index (maybe put into execution plan)
         return frame.reset_index(drop=True), plan
